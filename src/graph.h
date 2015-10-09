@@ -14,10 +14,11 @@ typedef struct vtx{
 	struct vtx * pai;
 } vertex;
 
-/** solução de um*/
-typedef struct sol{
+typedef struct trp{
+	vertex * source;
+	vertex * target;
+} trip;
 
-};
 
 vertex *** create_graph(int n);
 
