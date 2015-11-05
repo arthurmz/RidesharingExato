@@ -44,7 +44,10 @@ using namespace std;
  *
  *
  */
-int main (){
+
+
+
+int main_bak (){
 
 	srand( (unsigned)time(NULL) );
 
