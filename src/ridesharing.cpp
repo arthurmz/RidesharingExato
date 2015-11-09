@@ -7,118 +7,228 @@
 
 #include<vector>
 #include<iostream>
+#include<stdlib.h>
 using namespace std;
 
 typedef struct vtx{
+	//Common
 	int id;
-	int demand;
+	float time_window[4];
 	vtx* destiny;
-	int hasRider;//0-1
 	int ED;//Earliest Departure time
 	int LA;//Latest Arrival time
-	int AT = 1;
-	int BT = 1.1;
+	float AT;//variável de tempo A
+	float BT;//Variável de tempo B
+
+	//Rider=================================
+	bool hasRider;
+	int demand;//dmi
 	float MTT;//rider's maximum travel time
-	float time_window[4];
+	float s;//Service time si (tempo que gasta atendendo um rider)
+	//Vehicle===============================
+	bool hasVehicle;
+	int C;//Capacity
+	float AD;//variável de distância A
+	float BD;//Variável de distância B
+	float MTD;//maximum vehicle's travel distance
 
 } vertex;
 
 class Grafo{
 public:
-	vector< vector<float> > matrix;
-	vector< vertex* > vertex_list;
-	int n_vertex;
+	float** time_matrix;
+	float** distance_matrix;
+	vertex* vertex_list;
+	int n;
 	//Constroi um grafo completo com n vértices
-	Grafo(int n){
-		n_vertex = n;
-		matrix.resize(n, vector<float>(n));
-		vertex_list.resize(n);
+	Grafo(int n_) : n(n_) {
+		time_matrix = (float**) malloc(sizeof(float*)*n);
+		distance_matrix = (float**) malloc(sizeof(float*)*n);
+		for(int i=0; i< n; i++){
+			time_matrix[i] = (float*) malloc (sizeof(float)*n);
+			distance_matrix[i] = (float*) malloc (sizeof(float)*n);
+		}
+
+		vertex_list = (vertex*) malloc(sizeof(vertex)*n);
+
 		for (int i = 0; i < n; i++){
-			vertex_list[i] = new vertex();
+			vertex_list[i].id = i;
+			vertex_list[i].AT = 0;
+			vertex_list[i].BT = 1.3;
+			vertex_list[i].AD = 0;
+			vertex_list[i].BD = 1.3;
+			vertex_list[i].s = 0;//tempo de serviço é zero para todos os riders
+			vertex_list[i].demand = 1;//demanda é 1 para todos os riders
+			vertex_list[i].hasRider = false;
+			vertex_list[i].hasVehicle = false;
+			vertex_list[i].demand = 0;
 		}
 	}
 
 	~Grafo(){
-		for (int i = 0; i < n_vertex; i++){
-			delete vertex_list[i];
+		free(vertex_list);
+		for (int i = 0; i < n; i++){
+			free(time_matrix[i]);
+			free(distance_matrix[i]);
 		}
+		free(distance_matrix);
+		free(time_matrix);
 	}
-
-	float distance(vertex* v1, vertex* v2){
-		return matrix[v1->id][v2->id];
-	}
-
 };
 
 Grafo* problema_minimo(){
-	Grafo* g = new Grafo(6);
+	Grafo* g = new Grafo(8);
 
-	g->matrix[0][0] = 0;
-	g->matrix[0][1] = 1;
-	g->matrix[0][2] = 1;
-	g->matrix[0][3] = 1;
-	g->matrix[0][4] = 1;
-	g->matrix[0][5] = 1;
+	/*Configurando os tempos.*/
+	g->time_matrix[0][0] = 0;
+	g->time_matrix[0][1] = 1;
+	g->time_matrix[0][2] = 7;
+	g->time_matrix[0][3] = 3;
+	g->time_matrix[0][4] = 4;
+	g->time_matrix[0][5] = 3;
 
-	g->matrix[1][0] = 0;
-	g->matrix[1][1] = 0;
-	g->matrix[1][2] = 1;
-	g->matrix[1][3] = 1;
-	g->matrix[1][4] = 1;
-	g->matrix[1][5] = 1;
+	g->time_matrix[1][0] = 1;
+	g->time_matrix[1][1] = 0;
+	g->time_matrix[1][2] = 5;
+	g->time_matrix[1][3] = 8;
+	g->time_matrix[1][4] = 4;
+	g->time_matrix[1][5] = 6;
 
-	g->matrix[2][0] = 0;
-	g->matrix[2][1] = 1;
-	g->matrix[2][2] = 0;
-	g->matrix[2][3] = 1;
-	g->matrix[2][4] = 1;
-	g->matrix[2][5] = 1;
+	g->time_matrix[2][0] = 7;
+	g->time_matrix[2][1] = 5;
+	g->time_matrix[2][2] = 0;
+	g->time_matrix[2][3] = 3;
+	g->time_matrix[2][4] = 9;
+	g->time_matrix[2][5] = 5;
 
-	g->matrix[3][0] = 0;
-	g->matrix[3][1] = 1;
-	g->matrix[3][2] = 1;
-	g->matrix[3][3] = 0;
-	g->matrix[3][4] = 1;
-	g->matrix[3][5] = 1;
+	g->time_matrix[3][0] = 3;
+	g->time_matrix[3][1] = 8;
+	g->time_matrix[3][2] = 3;
+	g->time_matrix[3][3] = 0;
+	g->time_matrix[3][4] = 6;
+	g->time_matrix[3][5] = 1;
 
-	g->matrix[4][0] = 0;
-	g->matrix[4][1] = 1;
-	g->matrix[4][2] = 1;
-	g->matrix[4][3] = 1;
-	g->matrix[4][4] = 0;
-	g->matrix[4][5] = 1;
+	g->time_matrix[4][0] = 4;
+	g->time_matrix[4][1] = 4;
+	g->time_matrix[4][2] = 9;
+	g->time_matrix[4][3] = 6;
+	g->time_matrix[4][4] = 0;
+	g->time_matrix[4][5] = 4;
 
-	g->matrix[5][0] = 0;
-	g->matrix[5][1] = 1;
-	g->matrix[5][2] = 1;
-	g->matrix[5][3] = 1;
-	g->matrix[5][4] = 1;
-	g->matrix[5][5] = 1;
+	g->time_matrix[5][0] = 3;
+	g->time_matrix[5][1] = 6;
+	g->time_matrix[5][2] = 5;
+	g->time_matrix[5][3] = 1;
+	g->time_matrix[5][4] = 4;
+	g->time_matrix[5][5] = 0;
+
+	/*Configurando as distancias.*/
+	g->distance_matrix[0][0] = 0;
+	g->distance_matrix[0][1] = 1;
+	g->distance_matrix[0][2] = 7;
+	g->distance_matrix[0][3] = 3;
+	g->distance_matrix[0][4] = 4;
+	g->distance_matrix[0][5] = 3;
+
+	g->distance_matrix[1][0] = 1;
+	g->distance_matrix[1][1] = 0;
+	g->distance_matrix[1][2] = 5;
+	g->distance_matrix[1][3] = 8;
+	g->distance_matrix[1][4] = 4;
+	g->distance_matrix[1][5] = 6;
+
+	g->distance_matrix[2][0] = 7;
+	g->distance_matrix[2][1] = 5;
+	g->distance_matrix[2][2] = 0;
+	g->distance_matrix[2][3] = 3;
+	g->distance_matrix[2][4] = 9;
+	g->distance_matrix[2][5] = 5;
+
+	g->distance_matrix[3][0] = 3;
+	g->distance_matrix[3][1] = 8;
+	g->distance_matrix[3][2] = 3;
+	g->distance_matrix[3][3] = 0;
+	g->distance_matrix[3][4] = 6;
+	g->distance_matrix[3][5] = 1;
+
+	g->distance_matrix[4][0] = 4;
+	g->distance_matrix[4][1] = 4;
+	g->distance_matrix[4][2] = 9;
+	g->distance_matrix[4][3] = 6;
+	g->distance_matrix[4][4] = 0;
+	g->distance_matrix[4][5] = 4;
+
+	g->distance_matrix[5][0] = 3;
+	g->distance_matrix[5][1] = 6;
+	g->distance_matrix[5][2] = 5;
+	g->distance_matrix[5][3] = 1;
+	g->distance_matrix[5][4] = 4;
+	g->distance_matrix[5][5] = 0;
+
+	/*Configurando o motorista 1*/
+	vertex* mt1 = &g->vertex_list[0];
+	mt1->ED = 2;
+	mt1->LA = 44;
+	mt1->MTT = mt1->AT + (mt1->BT * g->time_matrix[0][6]);
+	mt1->MTD = mt1->AD + (mt1->BD * g->distance_matrix[0][6]);
+	mt1->destiny = &g->vertex_list[6];
+	mt1->hasVehicle = true;
+	mt1->time_window[0] = mt1->ED;
+	mt1->time_window[1] = mt1->LA - mt1->MTT;
+	mt1->time_window[2] = mt1->ED + mt1->MTT;
+	mt1->time_window[3] = mt1->LA;
+
+	/*Configurando o motorista 2*/
+	vertex* mt2 = &g->vertex_list[2];
+	mt2->ED = 7;
+	mt2->LA = 30;
+	mt2->MTT = mt2->AT + (mt2->BT * g->time_matrix[2][4]);
+	mt2->MTD = mt2->AD + (mt2->BD * g->distance_matrix[2][4]);
+	mt2->destiny = &g->vertex_list[4];
+	mt2->hasVehicle = true;
+	mt2->time_window[0] = mt2->ED;
+	mt2->time_window[1] = mt2->LA - mt1->MTT;
+	mt2->time_window[2] = mt2->ED + mt1->MTT;
+	mt2->time_window[3] = mt2->LA;
+
+	/*Configurando o carona 1*/
+	vertex* rider1 = &g->vertex_list[7];
+	rider1->ED = 7;
+	rider1->LA = 30;
+	rider1->MTT = rider1->AT + (rider1->BT * g->time_matrix[7][3]);
+	rider1->destiny = &g->vertex_list[3];
+	rider1->hasRider = true;
+	rider1->time_window[0] = rider1->ED;
+	rider1->time_window[1] = rider1->LA - mt1->MTT;
+	rider1->time_window[2] = rider1->ED + mt1->MTT;
+	rider1->time_window[3] = rider1->LA;
+
+	/*Configurando o carona 2*/
+	vertex* rider2 = &g->vertex_list[1];
+	rider2->ED = 12;
+	rider2->LA = 15;
+	rider2->MTT = rider2->AT + (rider2->BT * g->time_matrix[1][5]);
+	rider2->destiny = &g->vertex_list[5];
+	rider2->hasRider = true;
+	rider2->time_window[0] = rider2->ED;
+	rider2->time_window[1] = rider2->LA - mt1->MTT;
+	rider2->time_window[2] = rider2->ED + mt1->MTT;
+	rider2->time_window[3] = rider2->LA;
 
 
-
-	vertex* v1 = g->vertex_list[0];
-	vertex* v2 = g->vertex_list[3];
-	v1->ED = 2;
-	v1->LA = 10;
-	v1->MTT = v1->AT + v1->BT * g->distance(v1, v2);
-	v1->demand = 3;
-	v1->destiny = v2;
-	v1->hasRider = 1;
-	v1->time_window[0] = v1->ED;
-	v1->time_window[1] = v1->LA - v1->MTT;
-	v1->time_window[2] = v1->ED + v1->MTT;
-	v1->time_window[3] = v1->LA;
-
-
-	cout << g->matrix[0][0];
-
+	return g;
 }
 
 
 
 int main(){
 	Grafo* g = problema_minimo();
+
+	g->time_matrix[2][0] = 21;
+
+	cout << g->time_matrix[2][0] << endl;
+
+	cout << g->vertex_list[1].id;
 
 	delete g;
 
